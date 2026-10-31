@@ -1,39 +1,56 @@
+# ----------------------------------------------------------------
+# FILE: geometry.py
+# ----------------------------------------------------------------
 import math
+
 def get_corners(cx, cy, ang):
     c = math.cos(ang)
     s = math.sin(ang)
     half = 0.5
     local = [(-half, -half), (half, -half), (half, half), (-half, half)]
-    corners = []
-    for lx, ly in local:
-        rx = lx * c - ly * s
-        ry = lx * s + ly * c
-        corners.append((cx + rx, cy + ry))
-    return corners
+    return [(cx + lx*c - ly*s, cy + lx*s + ly*c) for lx, ly in local]
+
 def two_squares_overlap(ax, ay, aang, bx, by, bang):
-    if (ax - bx)**2 + (ay - by)**2 > 2.9:
+    """Robust version – returns True if interiors overlap (touching allowed)."""
+    dx = ax - bx
+    dy = ay - by
+    dist2 = dx*dx + dy*dy
+    if dist2 > 2.1:          # safe early reject (√2 ≈ 1.414)
         return False
+    if dist2 < 1e-12:        # same centre
+        return True
+
     a_corners = get_corners(ax, ay, aang)
     b_corners = get_corners(bx, by, bang)
+
+    # Collect edge normals from both squares
     axes = []
     for corners in (a_corners, b_corners):
         for i in range(4):
             x1, y1 = corners[i]
-            x2, y2 = corners[(i + 1) % 4]
-            axes.append((-(y2 - y1), x2 - x1))
+            x2, y2 = corners[(i+1)%4]
+            # perpendicular vector
+            axes.append((-(y2-y1), x2-x1))
+
     for nx, ny in axes:
         length = math.hypot(nx, ny)
         if length < 1e-12:
             continue
         nx /= length
         ny /= length
-        projs_a = [px * nx + py * ny for px, py in a_corners]
-        min_a, max_a = min(projs_a), max(projs_a)
-        projs_b = [px * nx + py * ny for px, py in b_corners]
-        min_b, max_b = min(projs_b), max(projs_b)
+
+        proj_a = [px*nx + py*ny for px, py in a_corners]
+        proj_b = [px*nx + py*ny for px, py in b_corners]
+
+        min_a, max_a = min(proj_a), max(proj_a)
+        min_b, max_b = min(proj_b), max(proj_b)
+
+        # strict separation → no overlap
         if max_a < min_b - 1e-9 or max_b < min_a - 1e-9:
             return False
-    return True
+
+    return True   # all axes overlap → interiors collide
+
 def bounding_box(xs, ys, angs):
     min_x = min_y = float("inf")
     max_x = max_y = float("-inf")
@@ -44,12 +61,25 @@ def bounding_box(xs, ys, angs):
             if px > max_x: max_x = px
             if py > max_y: max_y = py
     return min_x, min_y, max_x, max_y
+
 def current_box_size(xs, ys, angs):
     min_x, min_y, max_x, max_y = bounding_box(xs, ys, angs)
     return max(max_x - min_x, max_y - min_y)
+
 def shift_to_origin(xs, ys, angs):
     min_x, min_y, _, _ = bounding_box(xs, ys, angs)
     for i in range(len(xs)):
         xs[i] -= min_x
         ys[i] -= min_y
     return xs, ys
+
+def is_valid_packing(xs, ys, angs, L):
+    """Hard safety check"""
+    n = len(xs)
+    if L < math.sqrt(n) - 1e-6:
+        return False
+    for i in range(n):
+        for j in range(i+1, n):
+            if two_squares_overlap(xs[i], ys[i], angs[i], xs[j], ys[j], angs[j]):
+                return False
+    return True
