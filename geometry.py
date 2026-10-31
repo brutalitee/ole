@@ -1,4 +1,4 @@
-# === geometry.py =====
+# === geometry.py ===
 import math
 
 def get_corners(cx, cy, ang):
@@ -14,33 +14,23 @@ def get_corners(cx, cy, ang):
     return corners
 
 def two_squares_overlap(ax, ay, aang, bx, by, bang):
-    if (ax - bx)**2 + (ay - by)**2 > 2.9:
+    # early distance cull
+    dx = bx - ax
+    dy = by - ay
+    if dx*dx + dy*dy > 2.9:
         return False
 
-    a_corners = get_corners(ax, ay, aang)
-    b_corners = get_corners(bx, by, bang)
+    # four axes only (two edge directions from each square)
+    for axis_ang in (aang, aang + math.pi/2, bang, bang + math.pi/2):
+        nx = math.cos(axis_ang)
+        ny = math.sin(axis_ang)
+        dist = abs(dx * nx + dy * ny)
 
-    axes = []
-    for corners in (a_corners, b_corners):
-        for i in range(4):
-            x1, y1 = corners[i]
-            x2, y2 = corners[(i + 1) % 4]
-            axes.append((-(y2 - y1), x2 - x1))
+        # half-width of a unit square projected onto this axis
+        r1 = 0.5 * (abs(math.cos(axis_ang - aang)) + abs(math.sin(axis_ang - aang)))
+        r2 = 0.5 * (abs(math.cos(axis_ang - bang)) + abs(math.sin(axis_ang - bang)))
 
-    for nx, ny in axes:
-        length = math.hypot(nx, ny)
-        if length < 1e-12:
-            continue
-        nx /= length
-        ny /= length
-
-        projs_a = [px * nx + py * ny for px, py in a_corners]
-        min_a, max_a = min(projs_a), max(projs_a)
-
-        projs_b = [px * nx + py * ny for px, py in b_corners]
-        min_b, max_b = min(projs_b), max(projs_b)
-
-        if max_a < min_b - 1e-9 or max_b < min_a - 1e-9:
+        if dist > r1 + r2 + 1e-10:
             return False
     return True
 
