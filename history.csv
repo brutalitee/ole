@@ -1,0 +1,6 @@
+timestamp,n,step,L,score,code_hash,branch,note
+2026-10-31 07:47:46,1,80000,1.000000,0.000000,0aa4847b,fixed-robust-v1,new best
+2026-10-31 07:54:39,2,80000,2.009415,0.420871,0aa4847b,fixed-robust-v1,new best
+2026-10-31 07:59:41,3,80000,2.002568,0.156183,0aa4847b,fixed-robust-v1,new best
+2026-10-31 08:05:56,4,80000,2.094862,0.047431,0aa4847b,fixed-robust-v1,new best
+2026-10-31 08:15:41,5,80000,2.984384,0.334657,0aa4847b,fixed-robust-v1,new best
